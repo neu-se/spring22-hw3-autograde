@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# generate key - ssh-keygen -t ed25519 -C "jon@jonbell.net"
-# then put on GitHub as a deploy key, read only
-export GIT_SSH_COMMAND='ssh -i /autograder/gradescope.key'
+# generate key - ssh-keygen -t ed25519 -C "your@email-on-github.com"
+# then put on GitHub repo as a deploy key (do not allow write access!!)
+# make sure that key file is chmod'ed 700
+export GIT_SSH_COMMAND='ssh -i /autograder/source/gradescope.key -o StrictHostKeyChecking=no'
 
-git clone git@github.com:neu-se/spring22-hw3-autograde.git autograder_src
-rm /autograder/gradescope.key
-cd autograder_src
+git clone git@github.com:neu-se/spring22-hw3-autograde.git /autograder/autograder_src
+rm /autograder/source/gradescope.key
+cd /autograder/autograder_src
 bash run_in_gradescope

@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-node dist/index.js /autograde/submission /autograder/results/results.json
+echo "node dist/index.js /autograder/submission /autograder/results/results.json"
+node dist/index.js /autograder/submission /autograder/results/results.json

@@ -133,7 +133,7 @@ function gradeStrykerResults(schema, results) {
         return output;
     });
 }
-function executeCommandOrFailWithOutput(command) {
+function executeCommandAndGetOutput(command, ignoreFailures = false) {
     return __awaiter(this, void 0, void 0, function* () {
         let myOutput = '';
         let myError = '';
@@ -148,13 +148,25 @@ function executeCommandOrFailWithOutput(command) {
                     stderr: (data) => {
                         myError += data.toString();
                     }
-                }
+                },
+                ignoreReturnCode: ignoreFailures
             });
             myOutput += myError;
             core.info(`Command Output:<${myOutput}>`);
+            return myOutput;
         }
         catch (err) {
             throw new Error(`Command failed with output:\n${myOutput + myError}`);
+        }
+    });
+}
+function outputGrading(res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(JSON.stringify(res));
+        core.setOutput('test-results', JSON.stringify(res));
+        if (process.argv.length > 3) {
+            const outputFile = process.argv[3];
+            yield fs.writeFile(outputFile, JSON.stringify(res));
         }
     });
 }
@@ -163,7 +175,9 @@ function run() {
         try {
             let submissionDirectory = core.getInput('submission-directory', {});
             if (!submissionDirectory) {
-                submissionDirectory = 'solutions/non-green-tests';
+                if (process.argv.length < 3)
+                    throw new Error('Could not find a submission-directory to grade, specify as arg or in GHA');
+                submissionDirectory = process.argv[2];
             }
             let generalOutput = 'Grading submission...\n';
             const schema = yaml_1.default.parse(yield fs.readFile('grading.yml', 'utf-8'));
@@ -180,17 +194,31 @@ function run() {
                 }
             })));
             try {
+                //Check for eslint-disable, tsignore and fail
+                const esLintDisables = (yield executeCommandAndGetOutput('grep -ro eslint-disable src', true))
+                    .trim()
+                    .split('\n').length;
+                if (esLintDisables > schema.expectedESlintIgnore) {
+                    throw new Error(`Only expected to find ${schema.expectedESlintIgnore} eslint-disable annotations from the handout code, but found total of ${esLintDisables}. You may not add additional eslint-disable flags.`);
+                }
+                const tsIgnores = (yield executeCommandAndGetOutput('grep -ro ts-ignore src', true))
+                    .trim()
+                    .split('\n');
+                if (tsIgnores.length > schema.expectedTSIgnore &&
+                    !(tsIgnores.length === 1 && tsIgnores[0] === '')) {
+                    throw new Error(`Only expected to find ${schema.expectedTSIgnore} ts-ignore annotations from the handout code, but found total of ${tsIgnores}. You may not add additional eslint-disable flags.`);
+                }
                 //install or fail
                 generalOutput += `Compiling submission...\n`;
-                yield executeCommandOrFailWithOutput('npm install');
+                yield executeCommandAndGetOutput('npm install');
                 generalOutput += 'OK.\n';
                 //lint or fail
                 generalOutput += `Running ESLint...\n`;
-                yield executeCommandOrFailWithOutput('npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio');
+                yield executeCommandAndGetOutput('npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio');
                 generalOutput += 'OK.\n';
                 //Do dry run without stryker first, or fail
                 generalOutput += `Running tests without any faults, all tests must pass this step in order to receive any marks`;
-                yield executeCommandOrFailWithOutput('npm test');
+                yield executeCommandAndGetOutput('npm test');
                 generalOutput += 'OK.\n';
                 generalOutput += `Checking that tests run successfully without faults injected\n`;
                 core.info('Running tests without stryker');
@@ -211,7 +239,7 @@ function run() {
                         output: generalOutput
                     };
                 }
-                core.setOutput('test-results', JSON.stringify(res));
+                yield outputGrading(res);
             }
             catch (err) {
                 // core.error(err as Error)
@@ -222,7 +250,7 @@ function run() {
                     score: 0,
                     output: generalOutput
                 };
-                core.setOutput('test-results', JSON.stringify(res));
+                yield outputGrading(res);
             }
         }
         catch (error) {
