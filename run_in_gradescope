@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
+git show
 echo "node dist/index.js /autograder/submission /autograder/results/results.json"
 node dist/index.js /autograder/submission /autograder/results/results.json

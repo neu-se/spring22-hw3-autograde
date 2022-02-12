@@ -179,18 +179,18 @@ function run() {
                     throw new Error('Could not find a submission-directory to grade, specify as arg or in GHA');
                 submissionDirectory = process.argv[2];
             }
-            let generalOutput = 'Grading submission...\n';
+            let generalOutput = 'CS4530 Spring 2022 HW3 grading script beginning...\n Examining submission...\n';
             const schema = yaml_1.default.parse(yield fs.readFile('grading.yml', 'utf-8'));
             validateConfig(schema);
             yield Promise.all(schema.submissionFiles.map((submissionFile) => __awaiter(this, void 0, void 0, function* () {
                 const submissionPath = `${submissionDirectory}/${submissionFile.name}`;
                 try {
                     yield io.cp(submissionPath, `implementation-to-test/${submissionFile.dest}`);
-                    generalOutput += `Moved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`;
+                    generalOutput += `\tMoved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`;
                 }
                 catch (err) {
                     core.error(err);
-                    generalOutput += `WARNING: Could not find submission file ${submissionFile.name}\n`;
+                    generalOutput += `\tWARNING: Could not find submission file ${submissionFile.name}\n`;
                 }
             })));
             try {
@@ -209,20 +209,18 @@ function run() {
                     throw new Error(`Only expected to find ${schema.expectedTSIgnore} ts-ignore annotations from the handout code, but found total of ${tsIgnores}. You may not add additional eslint-disable flags.`);
                 }
                 //install or fail
-                generalOutput += `Compiling submission...\n`;
+                generalOutput += `\nCompiling submission...\n`;
                 yield executeCommandAndGetOutput('npm install');
                 generalOutput += 'OK.\n';
                 //lint or fail
-                generalOutput += `Running ESLint...\n`;
+                generalOutput += `\nRunning ESLint...\n`;
                 yield executeCommandAndGetOutput('npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio');
                 generalOutput += 'OK.\n';
                 //Do dry run without stryker first, or fail
-                generalOutput += `Running tests without any faults, all tests must pass this step in order to receive any marks`;
+                generalOutput += `\nRunning tests without any faults, all tests must pass this step in order to receive any marks`;
                 yield executeCommandAndGetOutput('npm test');
                 generalOutput += 'OK.\n';
-                generalOutput += `Checking that tests run successfully without faults injected\n`;
-                core.info('Running tests without stryker');
-                generalOutput += `Running tests with injected faults...\n`;
+                generalOutput += `\nRunning tests with injected faults...\n`;
                 let res;
                 try {
                     const report = yield runStryker();

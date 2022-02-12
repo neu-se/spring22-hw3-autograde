@@ -194,7 +194,7 @@ async function run(): Promise<void> {
         )
       submissionDirectory = process.argv[2]
     }
-    let generalOutput = 'Grading submission...\n'
+    let generalOutput = 'CS4530 Spring 2022 HW3 grading script beginning...\n Examining submission...\n'
     const schema = YAML.parse(
       await fs.readFile('grading.yml', 'utf-8')
     ) as GradingConfig
@@ -207,10 +207,10 @@ async function run(): Promise<void> {
             submissionPath,
             `implementation-to-test/${submissionFile.dest}`
           )
-          generalOutput += `Moved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`
+          generalOutput += `\tMoved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`
         } catch (err) {
           core.error(err as Error)
-          generalOutput += `WARNING: Could not find submission file ${submissionFile.name}\n`
+          generalOutput += `\tWARNING: Could not find submission file ${submissionFile.name}\n`
         }
       })
     )
@@ -242,25 +242,23 @@ async function run(): Promise<void> {
       }
 
       //install or fail
-      generalOutput += `Compiling submission...\n`
+      generalOutput += `\nCompiling submission...\n`
       await executeCommandAndGetOutput('npm install')
       generalOutput += 'OK.\n'
 
       //lint or fail
-      generalOutput += `Running ESLint...\n`
+      generalOutput += `\nRunning ESLint...\n`
       await executeCommandAndGetOutput(
         'npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio'
       )
       generalOutput += 'OK.\n'
 
       //Do dry run without stryker first, or fail
-      generalOutput += `Running tests without any faults, all tests must pass this step in order to receive any marks`
+      generalOutput += `\nRunning tests without any faults, all tests must pass this step in order to receive any marks`
       await executeCommandAndGetOutput('npm test')
       generalOutput += 'OK.\n'
 
-      generalOutput += `Checking that tests run successfully without faults injected\n`
-      core.info('Running tests without stryker')
-      generalOutput += `Running tests with injected faults...\n`
+      generalOutput += `\nRunning tests with injected faults...\n`
       let res: GraderOutput
       try {
         const report = await runStryker()
