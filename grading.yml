@@ -38,3 +38,5 @@ submissionFiles:
     dest: src/client
   - name: CoveyTownController.test.ts
     dest: src/lib
+expectedTSIgnore: 0
+expectedESlintIgnore: 7

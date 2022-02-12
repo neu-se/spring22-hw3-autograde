@@ -12,7 +12,7 @@ import addTownRoutes from '../router/towns';
 import Player from '../types/Player';
 import PlayerSession from '../types/PlayerSession';
 import * as utils from '../Utils';
-import { createConversationForTesting } from './TestUtils';
+import { createConversationForTesting, setConversationAreasOnMockTownController } from './TestUtils';
 import TownsServiceClient, { ResponseEnvelope, ServerConversationArea } from './TownsServiceClient';
 
 type TestTownData = {
@@ -22,7 +22,7 @@ type TestTownData = {
   townUpdatePassword: string;
 };
 
-describe("Create Conversation Area API", () => {
+describe('Create Conversation Area API', () => {
   describe('REST API', () => {
     let server: http.Server;
     let apiClient: TownsServiceClient;
@@ -303,8 +303,7 @@ describe("Create Conversation Area API", () => {
       mockCoveyTownController.friendlyName = friendlyName;
       mockCoveyTownController.isPubliclyListed = isPubliclyListed;
       conversationAreas = [generateConversationArea(), generateConversationArea()];
-      // eslint-disable-next-line
-      ((mockCoveyTownController as any))._conversationAreas = conversationAreas;
+      setConversationAreasOnMockTownController(mockCoveyTownController, conversationAreas);
       mockCoveyTownController.addPlayer.mockResolvedValue(playerSession);
       const response = await requestHandlers.townJoinHandler({ coveyTownID, userName });
 

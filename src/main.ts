@@ -12,6 +12,8 @@ type BreakPoint = {
 type GradingConfig = {
   gradedUnits: GradedUnit[]
   submissionFiles: {name: string; dest: string}[]
+  expectedTSIgnore: number
+  expectedESlintIgnore: number
 }
 type GradedUnit = {
   name: string
@@ -146,7 +148,10 @@ async function gradeStrykerResults(
   return output
 }
 
-async function executeCommandOrFailWithOutput(command: string): Promise<void> {
+async function executeCommandAndGetOutput(
+  command: string,
+  ignoreFailures = false
+): Promise<string> {
   let myOutput = ''
   let myError = ''
   try {
@@ -160,10 +165,12 @@ async function executeCommandOrFailWithOutput(command: string): Promise<void> {
         stderr: (data: Buffer) => {
           myError += data.toString()
         }
-      }
+      },
+      ignoreReturnCode: ignoreFailures
     })
     myOutput += myError
     core.info(`Command Output:<${myOutput}>`)
+    return myOutput
   } catch (err) {
     throw new Error(`Command failed with output:\n${myOutput + myError}`)
   }
@@ -173,7 +180,7 @@ async function run(): Promise<void> {
   try {
     let submissionDirectory = core.getInput('submission-directory', {})
     if (!submissionDirectory) {
-      submissionDirectory = 'solutions/non-green-tests'
+      submissionDirectory = 'solutions/a'
     }
     let generalOutput = 'Grading submission...\n'
     const schema = YAML.parse(
@@ -197,21 +204,46 @@ async function run(): Promise<void> {
     )
 
     try {
+      //Check for eslint-disable, tsignore and fail
+      const esLintDisables = (
+        await executeCommandAndGetOutput('grep -ro eslint-disable src', true)
+      )
+        .trim()
+        .split('\n').length
+      if (esLintDisables > schema.expectedESlintIgnore) {
+        throw new Error(
+          `Only expected to find ${schema.expectedESlintIgnore} eslint-disable annotations from the handout code, but found total of ${esLintDisables}. You may not add additional eslint-disable flags.`
+        )
+      }
+      const tsIgnores = (
+        await executeCommandAndGetOutput('grep -ro ts-ignore src', true)
+      )
+        .trim()
+        .split('\n')
+      if (
+        tsIgnores.length > schema.expectedTSIgnore &&
+        !(tsIgnores.length === 1 && tsIgnores[0] === '')
+      ) {
+        throw new Error(
+          `Only expected to find ${schema.expectedTSIgnore} ts-ignore annotations from the handout code, but found total of ${tsIgnores}. You may not add additional eslint-disable flags.`
+        )
+      }
+
       //install or fail
       generalOutput += `Compiling submission...\n`
-      await executeCommandOrFailWithOutput('npm install')
+      await executeCommandAndGetOutput('npm install')
       generalOutput += 'OK.\n'
 
       //lint or fail
       generalOutput += `Running ESLint...\n`
-      await executeCommandOrFailWithOutput(
+      await executeCommandAndGetOutput(
         'npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio'
       )
       generalOutput += 'OK.\n'
 
       //Do dry run without stryker first, or fail
       generalOutput += `Running tests without any faults, all tests must pass this step in order to receive any marks`
-      await executeCommandOrFailWithOutput('npm test')
+      await executeCommandAndGetOutput('npm test')
       generalOutput += 'OK.\n'
 
       generalOutput += `Checking that tests run successfully without faults injected\n`
@@ -232,6 +264,7 @@ async function run(): Promise<void> {
           output: generalOutput
         }
       }
+      core.info(JSON.stringify(res))
       core.setOutput('test-results', JSON.stringify(res))
     } catch (err) {
       // core.error(err as Error)
@@ -242,6 +275,7 @@ async function run(): Promise<void> {
         score: 0,
         output: generalOutput
       }
+      core.info(JSON.stringify(res))
       core.setOutput('test-results', JSON.stringify(res))
     }
   } catch (error) {

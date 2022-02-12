@@ -1,4 +1,4 @@
-import { mock, mockReset } from 'jest-mock-extended';
+import { mock, mockDeep, mockReset } from 'jest-mock-extended';
 import { nanoid } from 'nanoid';
 import { Socket } from 'socket.io';
 import * as TestUtils from '../client/TestUtils';
@@ -12,14 +12,8 @@ import CoveyTownController from './CoveyTownController';
 import CoveyTownsStore from './CoveyTownsStore';
 import TwilioVideo from './TwilioVideo';
 
-jest.mock('./TwilioVideo');
-
-const mockGetTokenForTown = jest.fn();
-// eslint-disable-next-line
-// @ts-ignore it's a mock
-TwilioVideo.getInstance = () => ({
-  getTokenForTown: mockGetTokenForTown,
-});
+const mockTwilioVideo = mockDeep<TwilioVideo>();
+jest.spyOn(TwilioVideo, "getInstance").mockReturnValue(mockTwilioVideo);
 
 function generateTestLocation(): UserLocation {
   return {
@@ -37,7 +31,7 @@ function expectArraysToContainSameMembers<T>(actual:T[], expected:T[]) : void{
 
 describe('CoveyTownController', () => {
   beforeEach(() => {
-    mockGetTokenForTown.mockClear();
+    mockTwilioVideo.getTokenForTown.mockClear();
   });
   it('constructor should set the friendlyName property', () => { 
     const townName = `FriendlyNameTest-${nanoid()}`;
@@ -51,8 +45,8 @@ describe('CoveyTownController', () => {
         const townName = `FriendlyNameTest-${nanoid()}`;
         const townController = new CoveyTownController(townName, false);
         const newPlayerSession = await townController.addPlayer(new Player(nanoid()));
-        expect(mockGetTokenForTown).toBeCalledTimes(1);
-        expect(mockGetTokenForTown).toBeCalledWith(townController.coveyTownID, newPlayerSession.player.id);
+        expect(mockTwilioVideo.getTokenForTown).toBeCalledTimes(1);
+        expect(mockTwilioVideo.getTokenForTown).toBeCalledWith(townController.coveyTownID, newPlayerSession.player.id);
       });
   });
   describe('town listeners and events', () => {
@@ -497,6 +491,16 @@ describe('CoveyTownController', () => {
           preCreatedAreas.push(TestUtils.createConversationForTesting({ boundingBox: boxes[i], conversationLabel: `Label${i}`, conversationTopic: `Topic${i}` }));
         }
         preCreatedAreas.forEach(area => expect(testingTown.addConversationArea(area)).toBe(true));
+        const areasPreCreatedInTownController:ServerConversationArea[] = [];
+        for (let i = 0; i < preCreatedAreas.length; i += 1){
+          const area = preCreatedAreas[i];
+          const areaInController = testingTown.conversationAreas.find(eachArea => eachArea.label === area.label);
+          expect(areaInController).toBeDefined();
+          if (areaInController){
+            areasPreCreatedInTownController.push(areaInController);
+          }
+        }
+        preCreatedAreas = areasPreCreatedInTownController;
       });
       const removePlayerFromConversationAreaAndExpectUpdate = (player: Player) =>{
         const newLocation: UserLocation = { ...player.location };
@@ -599,7 +603,7 @@ describe('CoveyTownController', () => {
         if (!playerLocatedInArea3){
           return;
         }
-        const newLoc :UserLocation = Object.assign(playerLocatedInArea3.location);
+        const newLoc :UserLocation = { ...playerLocatedInArea3.location };
         testingTown.updatePlayerLocation(playerLocatedInArea3, newLoc);
         // Should still not be in a conv area
         expect(playerLocatedInArea3.activeConversationArea).toBeUndefined();
@@ -607,7 +611,7 @@ describe('CoveyTownController', () => {
         expectConversationAreas(preCreatedAreas);
 
         // move to box1
-        const box1Loc :UserLocation = Object.assign(playerLocatedInArea3.location);
+        const box1Loc :UserLocation = { ...playerLocatedInArea3.location };
         box1Loc.conversationLabel = preCreatedAreas[0].label;
 
         testingTown.updatePlayerLocation(playerLocatedInArea3, box1Loc);
