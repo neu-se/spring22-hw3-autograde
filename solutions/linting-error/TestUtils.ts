@@ -1,8 +1,8 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import http from 'http';
 import { nanoid } from 'nanoid';
 import { AddressInfo } from 'net';
 import { Socket as ServerSocket } from 'socket.io';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { io, Socket } from 'socket.io-client';
 import { UserLocation } from '../CoveyTypes';
 import CoveyTownController from '../lib/CoveyTownController';
@@ -47,13 +47,13 @@ export function createSocketClient(
   sessionToken: string,
   coveyTownID: string,
 ): {
-  socket: Socket;
-  socketConnected: Promise<void>;
-  socketDisconnected: Promise<void>;
-  playerMoved: Promise<RemoteServerPlayer>;
-  newPlayerJoined: Promise<RemoteServerPlayer>;
-  playerDisconnected: Promise<RemoteServerPlayer>;
-} {
+    socket: Socket;
+    socketConnected: Promise<void>;
+    socketDisconnected: Promise<void>;
+    playerMoved: Promise<RemoteServerPlayer>;
+    newPlayerJoined: Promise<RemoteServerPlayer>;
+    playerDisconnected: Promise<RemoteServerPlayer>;
+  } {
   const address = server.address() as AddressInfo;
   const socket = io(`http://localhost:${address.port}`, {
     auth: { token: sessionToken, coveyTownID },
@@ -120,7 +120,7 @@ export function createConversationForTesting(params?: {
 export function setConversationAreasOnMockTownController(
   controller: CoveyTownController,
   conversationAreas: ServerConversationArea[],
-) {
+) : void {
   // eslint-disable-next-line
   (controller as any)._conversationAreas = conversationAreas;
 }
