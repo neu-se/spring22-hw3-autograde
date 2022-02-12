@@ -2,7 +2,7 @@ name: 'CS4530 Autograder for Testing Assignments - HW3, Spring 2022'
 description: 'Action that runs stryker on a student test suite'
 author: 'Jonathan Bell'
 inputs:
-  submission-direcotry: 
+  submission-directory: 
     required: true
     description: 'path to the student submission'
 outputs:

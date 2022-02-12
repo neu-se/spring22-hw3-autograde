@@ -1,10 +1,9 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
-import * as io from '@actions/io'
 import * as fs from 'fs/promises'
-import {stderr} from 'process'
+import * as io from '@actions/io'
+import * as mutantschema from './mutantschema'
 import YAML from 'yaml'
-import {MutantResult, MutationTestResult} from './mutantschema'
 
 type BreakPoint = {
   minimumMutantsDetected: number
@@ -31,14 +30,14 @@ type GraderOutput = {
   tests?: TestResult[]
   score?: number
 }
-async function runStryker(): Promise<MutationTestResult> {
+async function runStryker(): Promise<mutantschema.MutationTestResult> {
   await exec.exec('npx', ['stryker', 'run'], {cwd: 'implementation-to-test'})
   const report = JSON.parse(
     await fs.readFile(
       'implementation-to-test/reports/mutation/mutation.json',
       'utf-8'
     )
-  ) as MutationTestResult
+  ) as mutantschema.MutationTestResult
   return report
 }
 function extractLocationInformation(location: string): {
@@ -65,7 +64,7 @@ function extractLocationInformation(location: string): {
 }
 function gradeMutationUnit(
   config: GradedUnit,
-  mutationResults: MutationTestResult
+  mutationResults: mutantschema.MutationTestResult
 ): TestResult {
   const ret: TestResult = {
     score: 0,
@@ -81,7 +80,9 @@ function gradeMutationUnit(
       ) !== undefined
     )
   }
-  const mutantContainsThisGradedUnit = (mutant: MutantResult): boolean => {
+  const mutantContainsThisGradedUnit = (
+    mutant: mutantschema.MutantResult
+  ): boolean => {
     return (
       gradedLocations.find(mutatedLocation => {
         return (
@@ -132,7 +133,7 @@ function validateConfig(config: GradingConfig): void {
 }
 async function gradeStrykerResults(
   schema: GradingConfig,
-  results: MutationTestResult
+  results: mutantschema.MutationTestResult
 ): Promise<GraderOutput> {
   const testResults: TestResult[] = schema.gradedUnits.map(gradedUnit =>
     gradeMutationUnit(gradedUnit, results)

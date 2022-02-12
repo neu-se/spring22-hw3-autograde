@@ -251,6 +251,7 @@ export interface RamInformation {
 /**
  * Result of the mutation.
  */
+// eslint-disable-next-line no-shadow
 export declare enum MutantStatus {
   Killed = 'Killed',
   Survived = 'Survived',

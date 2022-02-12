@@ -40,14 +40,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
 const exec = __importStar(__nccwpck_require__(514));
-const io = __importStar(__nccwpck_require__(436));
 const fs = __importStar(__nccwpck_require__(225));
+const io = __importStar(__nccwpck_require__(436));
 const yaml_1 = __importDefault(__nccwpck_require__(552));
 function runStryker() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield exec.exec('npm', ['install'], { cwd: 'implementation-to-test' });
         yield exec.exec('npx', ['stryker', 'run'], { cwd: 'implementation-to-test' });
-        const report = JSON.parse(yield fs.readFile('implementation-to-test/reports/mutation/mutation.json', 'utf-8')); //TODO error handling
+        const report = JSON.parse(yield fs.readFile('implementation-to-test/reports/mutation/mutation.json', 'utf-8'));
         return report;
     });
 }
@@ -134,14 +133,39 @@ function gradeStrykerResults(schema, results) {
         return output;
     });
 }
+function executeCommandOrFailWithOutput(command) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let myOutput = '';
+        let myError = '';
+        try {
+            core.info(`Running ${command}`);
+            yield exec.exec(command, [], {
+                cwd: 'implementation-to-test',
+                listeners: {
+                    stdout: (data) => {
+                        myOutput += data.toString();
+                    },
+                    stderr: (data) => {
+                        myError += data.toString();
+                    }
+                }
+            });
+            myOutput += myError;
+            core.info(`Command Output:<${myOutput}>`);
+        }
+        catch (err) {
+            throw new Error(`Command failed with output:\n${myOutput + myError}`);
+        }
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let submissionDirectory = core.getInput('submission-directory', {});
             if (!submissionDirectory) {
-                submissionDirectory = 'solutions/a';
+                submissionDirectory = 'solutions/non-green-tests';
             }
-            let generalOutput = '';
+            let generalOutput = 'Grading submission...\n';
             const schema = yaml_1.default.parse(yield fs.readFile('grading.yml', 'utf-8'));
             validateConfig(schema);
             yield Promise.all(schema.submissionFiles.map((submissionFile) => __awaiter(this, void 0, void 0, function* () {
@@ -155,24 +179,51 @@ function run() {
                     generalOutput += `WARNING: Could not find submission file ${submissionFile.name}\n`;
                 }
             })));
-            generalOutput += `Running tests with injected faults...\n`;
-            let res;
             try {
-                const report = yield runStryker();
-                res = yield gradeStrykerResults(schema, report);
-                generalOutput += `Tests successfully ran`;
+                //install or fail
+                generalOutput += `Compiling submission...\n`;
+                yield executeCommandOrFailWithOutput('npm install');
+                generalOutput += 'OK.\n';
+                //lint or fail
+                generalOutput += `Running ESLint...\n`;
+                yield executeCommandOrFailWithOutput('npx eslint . --ext .js,.jsx,.ts,.tsx -f visualstudio');
+                generalOutput += 'OK.\n';
+                //Do dry run without stryker first, or fail
+                generalOutput += `Running tests without any faults, all tests must pass this step in order to receive any marks`;
+                yield executeCommandOrFailWithOutput('npm test');
+                generalOutput += 'OK.\n';
+                generalOutput += `Checking that tests run successfully without faults injected\n`;
+                core.info('Running tests without stryker');
+                generalOutput += `Running tests with injected faults...\n`;
+                let res;
+                try {
+                    const report = yield runStryker();
+                    res = yield gradeStrykerResults(schema, report);
+                    generalOutput += `Tests successfully ran`;
+                    res.output = generalOutput;
+                }
+                catch (err) {
+                    core.error(err);
+                    generalOutput += `An internal error occurred, and no test results were generated.\n`;
+                    res = {
+                        stdout_visibility: 'visible',
+                        score: 0,
+                        output: generalOutput
+                    };
+                }
+                core.setOutput('test-results', JSON.stringify(res));
             }
             catch (err) {
-                core.error(err);
-                generalOutput += `An internal error occurred, and no test results were generated.\n`;
-                res = {
+                // core.error(err as Error)
+                generalOutput += err.toString();
+                generalOutput += `\n\n^^^^ERROR OCURRED. This submission will not be graded until this/these errors are resolved. Your submission must pass 'npm install', 'npm run lint' and 'npm test' in order to be graded.\n`;
+                const res = {
                     stdout_visibility: 'visible',
-                    tests: [],
-                    output: ''
+                    score: 0,
+                    output: generalOutput
                 };
+                core.setOutput('test-results', JSON.stringify(res));
             }
-            res.output = generalOutput;
-            core.setOutput('test-results', JSON.stringify(res));
         }
         catch (error) {
             if (error instanceof Error)
