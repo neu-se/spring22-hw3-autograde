@@ -22,11 +22,11 @@ gradedUnits:
       - src/lib/CoveyTownController.ts:179-211
     breakPoints:
       - minimumMutantsDetected: 23
-        pointsToAward: 20
+        pointsToAward: 10
       - minimumMutantsDetected: 43
-        pointsToAward: 30
+        pointsToAward: 25
       - minimumMutantsDetected: 47
-        pointsToAward: 40
+        pointsToAward: 35
   - name: CoveyTownRequestHandlers.conversationAreaCreateHandler
     locations:
       - src/requestHandlers/CoveyTownRequestHandlers.ts:184-199
@@ -34,7 +34,7 @@ gradedUnits:
       - minimumMutantsDetected: 3
         pointsToAward: 5
       - minimumMutantsDetected: 4
-        pointsToAward: 5
+        pointsToAward: 10
   - name: Towns.ts POST route for /towns/:townID/conversationAreas
     locations:
       - src/router/towns.ts:112-127
