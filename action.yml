@@ -5,6 +5,9 @@ inputs:
   submission-direcotry: 
     required: true
     description: 'path to the student submission'
+outputs:
+  test-results:
+    description: 'GradeScope-formatted test results'
 runs:
   using: 'node16'
   main: 'dist/index.js'

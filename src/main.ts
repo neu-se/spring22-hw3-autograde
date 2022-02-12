@@ -38,7 +38,7 @@ async function runStryker(): Promise<MutationTestResult> {
       'implementation-to-test/reports/mutation/mutation.json',
       'utf-8'
     )
-  ) as MutationTestResult //TODO error handling
+  ) as MutationTestResult
   return report
 }
 function extractLocationInformation(location: string): {
