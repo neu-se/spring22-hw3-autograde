@@ -110,9 +110,9 @@ function gradeMutationUnit(
       )
     }, 0)
   // Determine which break point we hit
-  const breakPointHit = config.breakPoints
-    .reverse()
-    .find(bp => bp.minimumMutantsDetected <= mutantsDetected)
+  const breakPointHit = config.breakPoints.find(
+    bp => bp.minimumMutantsDetected <= mutantsDetected
+  )
 
   if (breakPointHit) ret.score = breakPointHit.pointsToAward
   else ret.score = 0
@@ -194,7 +194,8 @@ async function run(): Promise<void> {
         )
       submissionDirectory = process.argv[2]
     }
-    let generalOutput = 'CS4530 Spring 2022 HW3 grading script beginning...\n Examining submission...\n'
+    let generalOutput =
+      'CS4530 Spring 2022 HW3 grading script beginning...\n Examining submission...\n'
     const schema = YAML.parse(
       await fs.readFile('grading.yml', 'utf-8')
     ) as GradingConfig
