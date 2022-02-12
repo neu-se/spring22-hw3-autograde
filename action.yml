@@ -1,11 +1,10 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'CS4530 Autograder for Testing Assignments - HW3, Spring 2022'
+description: 'Action that runs stryker on a student test suite'
+author: 'Jonathan Bell'
 inputs:
-  milliseconds: # change this
+  submission-direcotry: 
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'path to the student submission'
 runs:
-  using: 'node12'
+  using: 'node14'
   main: 'dist/index.js'
