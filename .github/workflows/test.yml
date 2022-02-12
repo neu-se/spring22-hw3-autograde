@@ -1,4 +1,4 @@
-name: 'build-test'
+name: 'Build and Test the Grader'
 on: # rebuild any PRs and main branch changes
   pull_request:
   push:
@@ -8,7 +8,7 @@ on: # rebuild any PRs and main branch changes
 
 jobs:
   build: # make sure build/ci work properly
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
       - run: |
@@ -16,9 +16,19 @@ jobs:
       - run: |
           npm run all
   test: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        submission: [a, b, c, linting-error, non-green-tests]
     steps:
       - uses: actions/checkout@v2
       - uses: ./
         with:
-          milliseconds: 1000
+          submission-directory: ${{ matrix.submission }}
+  # report:
+  #   runs-on: self-hosted
+  #   needs: [test]
+  #   steps:
+  #     - name: Aggregate results
+  #       run: | 
+  #         echo ${{  }}

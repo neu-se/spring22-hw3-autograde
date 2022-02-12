@@ -1,0 +1,40 @@
+gradedUnits:
+  - name: CoveyTownController.destroySession
+    locations: 
+      - src/lib/CoveyTownController.ts:123-126
+    breakPoints: 
+      - minimumMutantsDetected: 1
+        pointsToAward: 5
+  - name: CoveyTownController.updatePlayerLocation
+    locations:
+      - src/lib/CoveyTownController.ts:140-151
+      - src/lib/CoveyTownController.ts:157-163
+      - src/types/Player.ts:50
+    breakPoints:
+      - minimumMutantsDetected: 25
+        pointsToAward: 25
+  - name: CoveyTownController.addConversationArea
+    locations:
+      - src/lib/CoveyTownController.ts:179-211
+    breakPoints:
+      - minimumMutantsDetected: 47
+        pointsToAward: 10
+  - name: CoveyTownRequestHandlers.conversationAreaCreateHandler
+    locations:
+      - src/requestHandlers/CoveyTownRequestHandlers.ts:184-199
+    breakPoints:
+      - minimumMutantsDetected: 4
+        pointsToAward: 5
+  - name: Towns.ts POST route for /towns/:townID/conversationAreas
+    locations:
+      - src/router/towns.ts:112-127
+    breakPoints:
+      - minimumMutantsDetected: 2
+        pointsToAward: 10
+submissionFiles:
+  - name: CoveyTownConversationAPI.test.ts
+    dest: src/client
+  - name: TestUtils.ts
+    dest: src/client
+  - name: CoveyTownController.test.ts
+    dest: src/lib

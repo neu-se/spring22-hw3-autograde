@@ -5,8 +5,11 @@
   "reporters": [
     "html",
     "clear-text",
+    "json",
     "progress"
   ],
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
   "testRunner": "jest",
   "coverageAnalysis": "perTest",
   "timeoutFactor": 5,
