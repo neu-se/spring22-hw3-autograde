@@ -2,7 +2,7 @@ import CORS from 'cors';
 import { randomInt } from 'crypto';
 import Express from 'express';
 import http from 'http';
-import { mock, mockReset, mockDeep } from 'jest-mock-extended';
+import { mock, mockReset } from 'jest-mock-extended';
 import { nanoid } from 'nanoid';
 import { AddressInfo } from 'net';
 import CoveyTownController from '../lib/CoveyTownController';
@@ -12,7 +12,7 @@ import addTownRoutes from '../router/towns';
 import Player from '../types/Player';
 import PlayerSession from '../types/PlayerSession';
 import * as utils from '../Utils';
-import { createConversationForTesting, setConversationAreasOnMockTownController } from './TestUtils';
+import { createConversationForTesting } from './TestUtils';
 import TownsServiceClient, { ResponseEnvelope, ServerConversationArea } from './TownsServiceClient';
 
 type TestTownData = {
@@ -89,67 +89,7 @@ describe('Create Conversation Area API', () => {
         spy?.mockRestore();
         errorSpy?.mockRestore();
       });
-      it('Returns an error code 500 if error occurs [T1.1]', async () => {
-        const testingTown = await createTownForTesting(undefined, true);
-        const testingSession = await apiClient.joinTown({
-          userName: nanoid(),
-          coveyTownID: testingTown.coveyTownID,
-        });
-
-        try {
-          await apiClient.createConversationArea({
-            conversationArea: createConversationForTesting(),
-            coveyTownID: testingTown.coveyTownID,
-            sessionToken: testingSession.coveySessionToken,
-          });
-          fail('Expected an error to be thrown by the client');
-        } catch (err) {
-          expect((err as Error).toString()).toEqual('Error: Request failed with status code 500');
-        }
-      });
-      it('Logs errors that occur during invocation of the request handler [T1.1]', async () => {
-        const testingTown = await createTownForTesting(undefined, true);
-        const testingSession = await apiClient.joinTown({
-          userName: nanoid(),
-          coveyTownID: testingTown.coveyTownID,
-        });
-
-        errorSpy.mockClear();
-        try {
-          await apiClient.createConversationArea({
-            conversationArea: createConversationForTesting(),
-            coveyTownID: testingTown.coveyTownID,
-            sessionToken: testingSession.coveySessionToken,
-          });
-        } catch (err) {
-          // expected
-        }
-        expect(errorSpy).toHaveBeenCalledTimes(1);
-        expect(errorSpy.mock.calls[0][0].toString()).toEqual(`Error: ${  errorMessage}`);
-      });
-    });
-    it('Includes newly created conversations when a new player joins [T1.3]', async () => {
-      const testingTown = await createTownForTesting(undefined, true);
-      const testingSession = await apiClient.joinTown({
-        userName: nanoid(),
-        coveyTownID: testingTown.coveyTownID,
-      });
-      const convArea = createConversationForTesting();
-      await apiClient.createConversationArea({
-        conversationArea: convArea,
-        coveyTownID: testingTown.coveyTownID,
-        sessionToken: testingSession.coveySessionToken,
-      });
-      const { conversationAreas } = await apiClient.joinTown({
-        userName: nanoid(),
-        coveyTownID: testingTown.coveyTownID,
-      });
-      expect(conversationAreas.length).toBe(1);
-      expect(conversationAreas[0].label).toEqual(convArea.label);
-      expect(conversationAreas[0].topic).toEqual(convArea.topic);
-      expect(conversationAreas[0].boundingBox).toEqual(convArea.boundingBox);
-      expect(conversationAreas[0].occupantsByID.length).toBe(0);
-    });
+    }); 
   });
   function generateConversationArea(): ServerConversationArea {
     return {
@@ -199,8 +139,6 @@ describe('Create Conversation Area API', () => {
       });
 
       it('Returns the correct error message [T1.2a]', () => {
-        expect(response.isOK).toBe(false);
-        expect(response.response).toEqual({});
         expect(response.message).toEqual(`Unable to create conversation area ${conversationArea.label} with topic ${conversationArea.topic}`);
       });
     });
@@ -224,8 +162,6 @@ describe('Create Conversation Area API', () => {
       });
 
       it('Returns the correct error message [T1.2a]', () => {
-        expect(response.isOK).toBe(false);
-        expect(response.response).toEqual({});
         expect(response.message).toEqual(`Unable to create conversation area ${conversationArea.label} with topic ${conversationArea.topic}`);
       });
     });
@@ -250,16 +186,7 @@ describe('Create Conversation Area API', () => {
       });
 
       it('Provides exactly the correct response and message upon success [T1.2a]', () => {
-        expect(response.isOK).toBe(true);
-        expect(response.response).toEqual({});
         expect(response.message).toBeUndefined();
-      });
-      it('Passes the correct conversation area to addController [T1.2a]', () => {
-        expect(mockCoveyTownController.addConversationArea).toHaveBeenCalledWith(conversationArea);
-      });
-
-      it('Invokes addConversationArea on the correct town controller [T1.2a]', () => {
-        expect(mockCoveyTownStore.getControllerForTown).toHaveBeenCalledWith(coveyTownID);
       });
     });
     it('Checks for a valid session token before creating a conversation [T1.2a]', () => {
@@ -275,49 +202,6 @@ describe('Create Conversation Area API', () => {
       expect(response.message).toEqual(`Unable to create conversation area ${conversationArea.label} with topic ${conversationArea.topic}`);
       expect(mockCoveyTownController.getSessionByToken).toHaveBeenCalledTimes(1);
       expect(mockCoveyTownController.addConversationArea).not.toHaveBeenCalled();
-    });
-  });
-  describe('townJoinHandler', () => {
-    const spys: jest.SpyInstance[] = [];
-    const mockCoveyTownStore = mock<CoveyTownsStore>();
-    const mockCoveyTownController = mockDeep<CoveyTownController>();
-    beforeAll(() => {
-      spys.push(jest.spyOn(CoveyTownsStore, 'getInstance').mockReturnValue(mockCoveyTownStore));
-    });
-    let coveyTownID : string;
-    let userName : string;
-    let player : Player;
-    let playerSession : PlayerSession;
-    const friendlyName = nanoid();
-    const isPubliclyListed = true;
-    let conversationAreas : ServerConversationArea[];
-    it('Should behave normally and return exactly the set of conversations in the town controller when a player joins [T1.3]', async () => {
-      mockReset(mockCoveyTownController);
-      mockReset(mockCoveyTownStore);
-      mockCoveyTownStore.getControllerForTown.mockReturnValue(mockCoveyTownController);
-      coveyTownID = nanoid();
-      userName = nanoid();
-      player = new Player(userName);
-      playerSession = new PlayerSession(player);
-      playerSession.videoToken = nanoid();
-      mockCoveyTownController.friendlyName = friendlyName;
-      mockCoveyTownController.isPubliclyListed = isPubliclyListed;
-      conversationAreas = [generateConversationArea(), generateConversationArea()];
-      setConversationAreasOnMockTownController(mockCoveyTownController, conversationAreas);
-      mockCoveyTownController.addPlayer.mockResolvedValue(playerSession);
-      const response = await requestHandlers.townJoinHandler({ coveyTownID, userName });
-
-      expect(mockCoveyTownStore.getControllerForTown).toHaveBeenCalledWith(coveyTownID);
-      expect(mockCoveyTownController.addPlayer).toHaveBeenCalledTimes(1);
-      expect(response.isOK).toBe(true);
-      expect(response.response?.coveyUserID).toBe(mockCoveyTownController.addPlayer.mock.calls[0][0].id);
-      expect(response.response?.coveySessionToken).toBe(playerSession.sessionToken);
-      expect(response.response?.providerVideoToken).toBe(playerSession.videoToken);
-      expect(response.response?.currentPlayers).toBe(mockCoveyTownController.players);
-      expect(response.response?.friendlyName).toBe(friendlyName);
-      expect(response.response?.isPubliclyListed).toBe(isPubliclyListed);
-
-      expect(response.response?.conversationAreas).toBe(mockCoveyTownController.conversationAreas);
     });
   });
 });

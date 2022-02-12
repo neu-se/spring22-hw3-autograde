@@ -265,35 +265,6 @@ describe('CoveyTownController', () => {
       mockListeners.forEach(listener => testingTown.addTownListener(listener));
     });
 
-    function generateOverlappingBoxes(): BoundingBox[][]{
-      function box(x:number, y:number, kind:'tall' | 'flat' | 'square') : BoundingBox{
-        return { x, y, width: (kind !== 'tall' ? 0.9 : 0.5), height: (kind !== 'flat' ? 0.9 : 0.5) };
-      }
-      function boxT(x:number, y:number, kind:'tall' | 'flat' | 'square') : BoundingBox{
-        return { x, y, width: 2 * (kind !== 'tall' ? 0.9 : 0.5), height: 2 * (kind !== 'flat' ? 0.9 : 0.5) };
-      }
-      const baseX = 10000;
-      const baseY = 10000;
-      function translate(_box: BoundingBox): BoundingBox{
-        return {
-          x: _box.x * 2 + baseX,
-          y : _box.y * 2 + baseY,
-          height: _box.height * 2,
-          width: _box.width * 2,
-        };
-      }
-      const base = [
-        box(1, 1, 'square'), box(2, 1, 'square'), box(3, 1, 'square'),
-        box(1, 2, 'square'), box(2, 2, 'square'), box(3, 2, 'square'),
-        box(1, 3, 'square'), box(2, 3, 'square'), box(3, 3, 'square'),
-      ].map(translate);
-      const above = [
-        boxT(0, 0.5, 'square'), boxT(1.5, 0.5, 'tall'), boxT(3, 0.5, 'square'),
-        boxT(0, 2, 'flat'), { x:2, y:2, width:0.5, height:0.5 }, boxT(3.5, 2, 'flat'),
-        boxT(0, 3.5, 'square'), boxT(1.5, 3.5, 'tall'), boxT(3.5, 3.5, 'square'),
-      ].map(translate);
-      return [base, above];
-    }
     function randomInt(_min:number, _max:number): number {
       const min = Math.ceil(_min) + 1;
       const max = Math.floor(_max);
@@ -377,9 +348,8 @@ describe('CoveyTownController', () => {
 
     const box4:BoundingBox = { height: 10, width: 10, x: 200, y: 200 }; 
 
-    const [gridBase, gridOverlap] = generateOverlappingBoxes();
-    const boxes = [box1, box2, box3, box4].concat(gridBase);
-    const overlappingBoxes = [box1Overlap, box2Overlap, box3Overlap].concat(gridOverlap);
+    const boxes = [box1, box2, box3, box4];
+    const overlappingBoxes = [box1Overlap, box2Overlap, box3Overlap]; 
     describe('addConversationArea', () => {
       it('should add the conversation area to the list of conversation areas [T1.2b]', ()=>{
         const newConversationArea = TestUtils.createConversationForTesting();
@@ -389,32 +359,10 @@ describe('CoveyTownController', () => {
       });
       it('should check to see if a conversation area exists with the given label [T1.2b]', ()=>{
         const newConversationArea = TestUtils.createConversationForTesting({ boundingBox: box1 });
-        const dupArea = TestUtils.createConversationForTesting({ conversationLabel: newConversationArea.label, boundingBox: box2 });
-
         // Add a valid area
         expect(testingTown.addConversationArea(newConversationArea)).toBe(true);
         expectConversationAreas([newConversationArea]);
 
-        // Add new area same label
-        expect(testingTown.addConversationArea(dupArea)).toBe(false);
-        expectConversationAreas([newConversationArea]);
-
-        // Add new area that's an exact dup
-        expect(testingTown.addConversationArea(newConversationArea)).toBe(false);
-        expectConversationAreas([newConversationArea]);
-
-      });
-      it('should allow multiple conversations with the same topic [T1.2b]', ()=>{
-        const newConversationArea = TestUtils.createConversationForTesting({ boundingBox: box1 });
-        const dupArea = TestUtils.createConversationForTesting({ conversationTopic: newConversationArea.topic, boundingBox: box2 });
-
-        // Add a valid area
-        expect(testingTown.addConversationArea(newConversationArea)).toBe(true);
-        expectConversationAreas([newConversationArea]);
-
-        // Add new area same topic
-        expect(testingTown.addConversationArea(dupArea)).toBe(true);
-        expectConversationAreas([newConversationArea, dupArea]);
       });
       it('should not allow an empty topic [T1.2b]', () =>{
         const validArea = TestUtils.createConversationForTesting({ boundingBox: box1 });
@@ -471,12 +419,6 @@ describe('CoveyTownController', () => {
         });
         mockListeners.forEach(listener => listener.onConversationAreaUpdated.mockClear());
 
-        // Create some invalid ones, then assert no listener calls
-        const invalidAreas = overlappingBoxes.map(box => TestUtils.createConversationForTesting({ boundingBox: box }));
-        invalidAreas.forEach(invalid => expect(testingTown.addConversationArea(invalid)).toBe(false));
-        mockListeners.forEach(listener =>{
-          expect(listener.onConversationAreaUpdated).toHaveBeenCalledTimes(0);
-        });
       });
 
     });
@@ -520,16 +462,11 @@ describe('CoveyTownController', () => {
             expect(listener.onConversationAreaDestroyed).toHaveBeenCalledTimes(1);
             const [actualDestroyed] = listener.onConversationAreaDestroyed.mock.calls[0];
             expect(actualDestroyed.label).toEqual(previousArea.label);
-            expect(actualDestroyed.boundingBox).toEqual(previousArea.boundingBox);
-            expect(actualDestroyed.topic).toEqual(previousArea.topic);
-            expect(actualDestroyed.occupantsByID.length).toBe(0);
           } else {
             expect(listener.onConversationAreaUpdated).toHaveBeenCalledTimes(1);
             const [actualLeaving] = listener.onConversationAreaUpdated.mock.calls[0];
             expect(actualLeaving.label).toEqual(previousArea.label);
             expect(actualLeaving.boundingBox).toEqual(previousArea.boundingBox);
-            expect(actualLeaving.topic).toEqual(previousArea.topic);
-            expectArraysToContainSameMembers(actualLeaving.occupantsByID, expectedPreviousAreaMembers);
           }
         });
       };
@@ -589,9 +526,6 @@ describe('CoveyTownController', () => {
         const newConversationArea = preCreatedAreas[0];
         const newLocation:UserLocation = { moving: false, rotation: 'front', x: 10, y: 10, conversationLabel: newConversationArea.label };
         testingTown.updatePlayerLocation(testingPlayer, newLocation);
-        expect(testingPlayer.activeConversationArea?.label).toEqual(newConversationArea.label);
-        expect(testingPlayer.activeConversationArea?.topic).toEqual(newConversationArea.topic);
-        expect(testingPlayer.activeConversationArea?.boundingBox).toEqual(newConversationArea.boundingBox);
         const expectedOccupantsByArea:string[][] = preCreatedAreas.map(() => []);
         expectedOccupantsByArea[0] = [testingPlayer.id];
         expectConversationAreas(preCreatedAreas, expectedOccupantsByArea);

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-git show
+git rev-parse HEAD
 echo "node dist/index.js /autograder/submission /autograder/results/results.json"
 node dist/index.js /autograder/submission /autograder/results/results.json
