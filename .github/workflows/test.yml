@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./
         with:
-          submission-directory: ${{ matrix.submission }}
+          submission-directory: solutions/${{ matrix.submission }}
   # report:
   #   runs-on: self-hosted
   #   needs: [test]
