@@ -175,12 +175,24 @@ async function executeCommandAndGetOutput(
     throw new Error(`Command failed with output:\n${myOutput + myError}`)
   }
 }
+async function outputGrading(res: GraderOutput): Promise<void> {
+  core.info(JSON.stringify(res))
+  core.setOutput('test-results', JSON.stringify(res))
+  if (process.argv.length > 3) {
+    const outputFile = process.argv[3]
+    await fs.writeFile(outputFile, JSON.stringify(res))
+  }
+}
 
 async function run(): Promise<void> {
   try {
     let submissionDirectory = core.getInput('submission-directory', {})
     if (!submissionDirectory) {
-      submissionDirectory = 'solutions/a'
+      if (process.argv.length < 3)
+        throw new Error(
+          'Could not find a submission-directory to grade, specify as arg or in GHA'
+        )
+      submissionDirectory = process.argv[2]
     }
     let generalOutput = 'Grading submission...\n'
     const schema = YAML.parse(
@@ -264,8 +276,7 @@ async function run(): Promise<void> {
           output: generalOutput
         }
       }
-      core.info(JSON.stringify(res))
-      core.setOutput('test-results', JSON.stringify(res))
+      await outputGrading(res)
     } catch (err) {
       // core.error(err as Error)
       generalOutput += (err as Error).toString()
@@ -275,8 +286,7 @@ async function run(): Promise<void> {
         score: 0,
         output: generalOutput
       }
-      core.info(JSON.stringify(res))
-      core.setOutput('test-results', JSON.stringify(res))
+      await outputGrading(res)
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
