@@ -139,7 +139,10 @@ export default class CoveyTownController {
   updatePlayerLocation(player: Player, location: UserLocation): void {
     const conversation = this.conversationAreas.find(conv => conv.label === location.conversationLabel);
     const prevConversation = player.activeConversationArea;
-    player.updateLocation(location, conversation);
+
+    player.location = location;
+    player.activeConversationArea = conversation;
+
     if (conversation !== prevConversation) {
       if (prevConversation) {
         this.removePlayerFromConversationArea(player, prevConversation);
@@ -153,6 +156,15 @@ export default class CoveyTownController {
     this._listeners.forEach(listener => listener.onPlayerMoved(player));
   }
 
+  /**
+   * Removes a player from a conversation area, updating the conversation area's occupants list, 
+   * and emitting the appropriate message (area updated or area destroyed)
+   * 
+   * Does not update the player's activeConversationArea property.
+   * 
+   * @param player Player to remove from conversation area
+   * @param conversation Conversation area to remove player from
+   */
   removePlayerFromConversationArea(player: Player, conversation: ServerConversationArea) : void {
     conversation.occupantsByID.splice(conversation.occupantsByID.findIndex(p=>p === player.id), 1);
     if (conversation.occupantsByID.length === 0) {
@@ -177,32 +189,35 @@ export default class CoveyTownController {
    * @returns true if the conversation is successfully created, or false if not
    */
   addConversationArea(_conversationArea: ServerConversationArea): boolean {
-    if (
-      this._conversationAreas.find(
-        eachExistingConversation => eachExistingConversation.label === _conversationArea.label,
-      )
-    )
+    if (this._conversationAreas.find(
+        eachExistingConversation => eachExistingConversation.label === _conversationArea.label
+        ))
       return false;
     if (_conversationArea.topic === ''){
       return false;
     }
-    if (this._conversationAreas.find(eachExistingConversation => CoveyTownController.boxesOverlap(eachExistingConversation.boundingBox, _conversationArea.boundingBox)) !== undefined){
+    if (this._conversationAreas.find(eachExistingConversation => 
+      CoveyTownController.boxesOverlap(eachExistingConversation.boundingBox, _conversationArea.boundingBox)) !== undefined){
       return false;
     }
     const newArea :ServerConversationArea = Object.assign(_conversationArea);
     this._conversationAreas.push(newArea);
-    const playersInThisConversation = this.players.filter(player =>
-      player.isWithin(newArea),
-    );
-    playersInThisConversation.forEach(
-      player => (player.updateLocation(player.location, newArea)),
-    );
+    const playersInThisConversation = this.players.filter(player => player.isWithin(newArea));
+    playersInThisConversation.forEach(player => {player.activeConversationArea = newArea;});
     newArea.occupantsByID = playersInThisConversation.map(player => player.id);
     this._listeners.forEach(listener => listener.onConversationAreaUpdated(newArea));
     return true;
   }
 
+  /**
+   * Detects whether two bounding boxes overlap and share any points
+   * 
+   * @param box1 
+   * @param box2 
+   * @returns true if the boxes overlap, otherwise false
+   */
   static boxesOverlap(box1: BoundingBox, box2: BoundingBox):boolean{
+    //Helper function to extract the top left (x1,y1) and bottom right corner (x2,y2) of each bounding box
     const toRectPoints = (box: BoundingBox) => ({ x1: box.x - box.width / 2, x2: box.x + box.width / 2, y1: box.y - box.height / 2, y2: box.y + box.height / 2 });
     const rect1 = toRectPoints(box1);
     const rect2 = toRectPoints(box2);
