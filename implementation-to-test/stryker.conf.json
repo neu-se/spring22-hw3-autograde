@@ -16,10 +16,11 @@
   "timeoutMS": 15000,
   "mutate": [
     "src/lib/CoveyTownController.ts:123-126", 
-    "src/lib/CoveyTownController.ts:140-151",
-    "src/lib/CoveyTownController.ts:157-163",
-    "src/lib/CoveyTownController.ts:179-211",
-    "src/types/Player.ts:50",
+    "src/lib/CoveyTownController.ts:140-156",
+    "src/lib/CoveyTownController.ts:168-175",
+    "src/lib/CoveyTownController.ts:191-210",
+    "src/lib/CoveyTownController.ts:219-225",
+    "src/types/Player.ts:56-65",
     "src/requestHandlers/CoveyTownRequestHandlers.ts:184-199",
     "src/router/towns.ts:112-127"
   ]

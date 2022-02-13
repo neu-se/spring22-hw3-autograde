@@ -190,8 +190,8 @@ export default class CoveyTownController {
    */
   addConversationArea(_conversationArea: ServerConversationArea): boolean {
     if (this._conversationAreas.find(
-        eachExistingConversation => eachExistingConversation.label === _conversationArea.label
-        ))
+      eachExistingConversation => eachExistingConversation.label === _conversationArea.label,
+    ))
       return false;
     if (_conversationArea.topic === ''){
       return false;
@@ -217,7 +217,7 @@ export default class CoveyTownController {
    * @returns true if the boxes overlap, otherwise false
    */
   static boxesOverlap(box1: BoundingBox, box2: BoundingBox):boolean{
-    //Helper function to extract the top left (x1,y1) and bottom right corner (x2,y2) of each bounding box
+    // Helper function to extract the top left (x1,y1) and bottom right corner (x2,y2) of each bounding box
     const toRectPoints = (box: BoundingBox) => ({ x1: box.x - box.width / 2, x2: box.x + box.width / 2, y1: box.y - box.height / 2, y2: box.y + box.height / 2 });
     const rect1 = toRectPoints(box1);
     const rect2 = toRectPoints(box2);
