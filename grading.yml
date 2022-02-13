@@ -40,8 +40,6 @@ gradedUnits:
     locations:
       - src/router/towns.ts:112-127
     breakPoints:
-      - minimumMutantsDetected: 1
-        pointsToAward: 5
       - minimumMutantsDetected: 2
         pointsToAward: 10
 submissionFiles:
