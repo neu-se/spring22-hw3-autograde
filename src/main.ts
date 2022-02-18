@@ -223,7 +223,9 @@ async function run(): Promise<void> {
       if (!anyFilesFound) {
         throw new Error(
           `This submission does not contain any of the expected files.
-          Please be sure to upload only the following files (not in a zip, not in a directory, just these files): ${schema.submissionFiles.join()}`
+          Please be sure to upload only the following files (not in a zip, not in a directory, just these files): ${schema.submissionFiles
+            .map(f => f.name)
+            .join()}`
         )
       }
       //Check for eslint-disable, tsignore and fail
