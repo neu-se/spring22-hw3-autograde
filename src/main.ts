@@ -200,7 +200,7 @@ async function run(): Promise<void> {
       await fs.readFile('grading.yml', 'utf-8')
     ) as GradingConfig
     validateConfig(schema)
-    await Promise.all(
+    const fileResults = await Promise.all(
       schema.submissionFiles.map(async submissionFile => {
         const submissionPath = `${submissionDirectory}/${submissionFile.name}`
         try {
@@ -209,14 +209,23 @@ async function run(): Promise<void> {
             `implementation-to-test/${submissionFile.dest}`
           )
           generalOutput += `\tMoved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`
+          return true
         } catch (err) {
           core.error(err as Error)
           generalOutput += `\tWARNING: Could not find submission file ${submissionFile.name}\n`
+          return false
         }
       })
     )
 
     try {
+      const anyFilesFound = fileResults.find(v => v === true)
+      if (!anyFilesFound) {
+        throw new Error(
+          `This submission does not contain any of the expected files.
+          Please be sure to upload only the following files (not in a zip, not in a directory, just these files): ${schema.submissionFiles.join()}`
+        )
+      }
       //Check for eslint-disable, tsignore and fail
       const esLintDisables = (
         await executeCommandAndGetOutput('grep -ro eslint-disable src', true)

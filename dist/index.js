@@ -180,18 +180,25 @@ function run() {
             let generalOutput = 'CS4530 Spring 2022 HW3 grading script beginning...\n Examining submission...\n';
             const schema = yaml_1.default.parse(yield fs.readFile('grading.yml', 'utf-8'));
             validateConfig(schema);
-            yield Promise.all(schema.submissionFiles.map((submissionFile) => __awaiter(this, void 0, void 0, function* () {
+            const fileResults = yield Promise.all(schema.submissionFiles.map((submissionFile) => __awaiter(this, void 0, void 0, function* () {
                 const submissionPath = `${submissionDirectory}/${submissionFile.name}`;
                 try {
                     yield io.cp(submissionPath, `implementation-to-test/${submissionFile.dest}`);
                     generalOutput += `\tMoved submitted file ${submissionFile.name} to ${submissionFile.dest}\n`;
+                    return true;
                 }
                 catch (err) {
                     core.error(err);
                     generalOutput += `\tWARNING: Could not find submission file ${submissionFile.name}\n`;
+                    return false;
                 }
             })));
             try {
+                const anyFilesFound = fileResults.find(v => v === true);
+                if (!anyFilesFound) {
+                    throw new Error(`This submission does not contain any of the expected files.
+          Please be sure to upload only the following files (not in a zip, not in a directory, just these files): ${schema.submissionFiles.join()}`);
+                }
                 //Check for eslint-disable, tsignore and fail
                 const esLintDisables = (yield executeCommandAndGetOutput('grep -ro eslint-disable src', true))
                     .trim()
