@@ -110,7 +110,8 @@ function gradeMutationUnit(
       )
     }, 0)
   // Determine which break point we hit
-  const breakPointHit = config.breakPoints.find(
+  const breakPointsReversed = config.breakPoints.concat([]).reverse()
+  const breakPointHit = breakPointsReversed.find(
     bp => bp.minimumMutantsDetected <= mutantsDetected
   )
 
