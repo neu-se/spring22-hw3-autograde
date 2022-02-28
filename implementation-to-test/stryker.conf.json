@@ -13,7 +13,7 @@
   "testRunner": "jest",
   "coverageAnalysis": "perTest",
   "timeoutFactor": 5,
-  "timeoutMS": 15000,
+  "timeoutMS": 25000,
   "mutate": [
     "src/lib/CoveyTownController.ts:123-126", 
     "src/lib/CoveyTownController.ts:140-156",
