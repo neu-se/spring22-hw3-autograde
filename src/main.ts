@@ -104,7 +104,8 @@ function gradeMutationUnit(
           .filter(mutantContainsThisGradedUnit)
           .reduce((mutantsFoundThisFile, mutant) => {
             // console.log(mutant)
-            if (mutant.status === 'Killed') return mutantsFoundThisFile + 1
+            if (mutant.status === 'Killed' || mutant.status === 'Timeout')
+              return mutantsFoundThisFile + 1
             return mutantsFoundThisFile
           }, 0)
       )
